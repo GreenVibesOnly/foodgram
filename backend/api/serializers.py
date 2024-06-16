@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import IntegerField, SerializerMethodField
@@ -8,66 +7,10 @@ from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
 from blog.models import Ingredient, IngredientInRecipe, Recipe, Tag
-from users.models import Subscribe
+from users.serializers import ModifiedUserSerializer
 
 
 User = get_user_model()
-
-
-class ModifiedUserCreateSerializer(UserCreateSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'username',
-            'first_name',
-            'last_name',
-            'password',
-        )
-
-
-class ModifiedUserSerializer(UserSerializer):
-    is_subscribed = SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'is_subscribed',
-            'avatar'
-        )
-
-    def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Subscribe.objects.filter(user=user, subscriber=obj).exists()
-
-
-class SubscribeSerializer(ModifiedUserSerializer):
-    recipes = SerializerMethodField()
-    recipes_count = SerializerMethodField()
-
-    class Meta(ModifiedUserSerializer.Meta):
-        fields = ModifiedUserSerializer.Meta.fields + (
-            'recipes', 'recipes_count'
-        )
-
-    def get_recipes(self, obj):
-        request = self.context.get('request')
-        limit = request.GET.get('recipes_limit')
-        recipes = obj.recipes.all()
-        if limit:
-            recipes = recipes[:int(limit)]
-        serializer = RecipeSubscribeSerializer(recipes, many=True)
-        return serializer.data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
 
 
 class TagSerializer(ModelSerializer):

@@ -7,8 +7,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.pagination import ModifiedPagination
-from api.serializers import ModifiedUserSerializer, SubscribeSerializer
 from .models import Subscribe
+from .serializers import ModifiedUserSerializer, SubscribeSerializer
+
 
 User = get_user_model()
 
@@ -33,13 +34,13 @@ class ModifiedUserViewSet(UserViewSet):
                                              data=request.data,
                                              context={"request": request})
             serializer.is_valid(raise_exception=True)
-            Subscribe.objects.create(user=user, author=author)
+            Subscribe.objects.create(user=user, subscriber=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
             subscription = get_object_or_404(Subscribe,
                                              user=user,
-                                             author=author)
+                                             subscriber=author)
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 

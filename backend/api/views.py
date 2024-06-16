@@ -107,18 +107,19 @@ class RecipeViewSet(ModelViewSet):
         ).annotate(amount=Sum('amount'))
         buffer = BytesIO()
         file = canvas.Canvas('Foodgram_shopping_list.pdf')
-        file.setFont("Times-Roman", 20)
+        file.setFont('Times-Roman', 20)
         file.drawString(50, 50, 'Покупки дня')
         file.line(50, 100, 250, 100)
         file.drawImage('backend/media/shopping_list/fork_and_knife.png',
                        350, 50, width=50, height=50)
         str_point = 120
+        file.setFont('Times-Roman', 15)
         for ingredient in ingredients_list:
             ingredient_name = ingredient['ingredient__name']
             measurement_unit = ingredient['ingredient__measurement_unit']
             amount = ingredient['amount']
-            file.drawString(50, str_point,
-                            f'- {ingredient_name}: {amount} {measurement_unit}')
+            file.drawString(50, str_point, f'- {ingredient_name}: '
+                            f'{amount} {measurement_unit}')
             str_point += 20
         file.drawString(50, 800, 'Foodgram')
         file.save()
