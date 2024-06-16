@@ -34,11 +34,11 @@ class Ingredient(models.Model):
 
     name = models.CharField(
         'Название',
-        max_length=64
+        max_length=128
     )
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=16
+        max_length=64
     )
 
     class Meta:
@@ -97,7 +97,7 @@ class Recipe(models.Model):
         'Время приготовления',
         validators=[MinValueValidator(
             1,
-            message='Блюдо не может готовиться меньше 1 минуты.'
+            message='Время приготовления не может быть меньше 1 минуты'
         )]
     )
 

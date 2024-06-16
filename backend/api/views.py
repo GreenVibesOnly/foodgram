@@ -1,11 +1,9 @@
-from datetime import datetime
-
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from recipes.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
-                            ShoppingCart, Tag)
+from io import BytesIO
+from reportlab.pdfgen import canvas
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
@@ -13,32 +11,32 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from blog.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
+                         ShoppingCart, Tag)
 from .filters import IngredientFilter, RecipeFilter
-from .pagination import CustomPagination
+from .pagination import ModifiedPagination
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeShortSerializer, RecipeWriteSerializer,
                           TagSerializer)
 
 
-class IngredientViewSet(ReadOnlyModelViewSet):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = IngredientFilter
-
-
 class TagViewSet(ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+
+
+class IngredientViewSet(ReadOnlyModelViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
-    pagination_class = CustomPagination
+    pagination_class = ModifiedPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
@@ -50,16 +48,35 @@ class RecipeViewSet(ModelViewSet):
             return RecipeReadSerializer
         return RecipeWriteSerializer
 
+    def add_resipe(self, model, user, pk, location_name):
+        if model.objects.filter(user=user, recipe__id=pk).exists():
+            return Response(f'Рецепт уже есть в {location_name}',
+                            status=status.HTTP_400_BAD_REQUEST)
+        recipe = get_object_or_404(Recipe, id=pk)
+        model.objects.create(user=user, recipe=recipe)
+        serializer = RecipeShortSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete_resipe(self, model, user, pk, location_name):
+        obj = model.objects.filter(user=user, recipe__id=pk)
+        if obj.exists():
+            obj.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(f'Рецепта нет в {location_name}',
+                        status=status.HTTP_400_BAD_REQUEST)
+
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk):
+        location_name = 'избранном'
         if request.method == 'POST':
-            return self.add_to(Favourite, request.user, pk)
+            return self.add_resipe(Favourite, request.user, pk)
         else:
-            return self.delete_from(Favourite, request.user, pk)
+            return self.delete_resipe(Favourite, request.user,
+                                      pk, location_name)
 
     @action(
         detail=True,
@@ -67,25 +84,12 @@ class RecipeViewSet(ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk):
+        location_name = 'корзине покупок'
         if request.method == 'POST':
-            return self.add_to(ShoppingCart, request.user, pk)
+            return self.add_resipe(ShoppingCart, request.user, pk)
         else:
-            return self.delete_from(ShoppingCart, request.user, pk)
-
-    def add_to(self, model, user, pk):
-        if model.objects.filter(user=user, recipe__id=pk).exists():
-            return Response({'errors': 'Рецепт уже добавлен!'}, status=status.HTTP_400_BAD_REQUEST)
-        recipe = get_object_or_404(Recipe, id=pk)
-        model.objects.create(user=user, recipe=recipe)
-        serializer = RecipeShortSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def delete_from(self, model, user, pk):
-        obj = model.objects.filter(user=user, recipe__id=pk)
-        if obj.exists():
-            obj.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response({'errors': 'Рецепт уже удален!'}, status=status.HTTP_400_BAD_REQUEST)
+            return self.delete_resipe(ShoppingCart, request.user,
+                                      pk, location_name)
 
     @action(
         detail=False,
@@ -95,29 +99,32 @@ class RecipeViewSet(ModelViewSet):
         user = request.user
         if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
-
-        ingredients = IngredientInRecipe.objects.filter(
+        ingredients_list = IngredientInRecipe.objects.filter(
             recipe__shopping_cart__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit'
         ).annotate(amount=Sum('amount'))
-
-        today = datetime.today()
-        shopping_list = (
-            f'Список покупок для: {user.get_full_name()}\n\n'
-            f'Дата: {today:%Y-%m-%d}\n\n'
+        buffer = BytesIO()
+        file = canvas.Canvas('Foodgram_shopping_list.pdf')
+        file.setFont("Times-Roman", 20)
+        file.drawString(50, 50, 'Покупки дня')
+        file.line(50, 100, 250, 100)
+        file.drawImage('backend/media/shopping_list/fork_and_knife.png',
+                       350, 50, width=50, height=50)
+        str_point = 120
+        for ingredient in ingredients_list:
+            ingredient_name = ingredient['ingredient__name']
+            measurement_unit = ingredient['ingredient__measurement_unit']
+            amount = ingredient['amount']
+            file.drawString(50, str_point,
+                            f'- {ingredient_name}: {amount} {measurement_unit}')
+            str_point += 20
+        file.drawString(50, 800, 'Foodgram')
+        file.save()
+        buffer.seek(0)
+        return FileResponse(
+            buffer,
+            as_attachment=True,
+            filename='Foodgram_shopping_list.pdf'
         )
-        shopping_list += '\n'.join([
-            f'- {ingredient["ingredient__name"]} '
-            f'({ingredient["ingredient__measurement_unit"]})'
-            f' - {ingredient["amount"]}'
-            for ingredient in ingredients
-        ])
-        shopping_list += f'\n\nFoodgram ({today:%Y})'
-
-        filename = f'{user.username}_shopping_list.txt'
-        response = HttpResponse(shopping_list, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-
-        return response
