@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import UniqueConstraint
 
 
 class User(AbstractUser):
@@ -53,7 +52,7 @@ class Subscribe(models.Model):
     class Meta:
         ordering = ['-id']
         constraints = [
-            UniqueConstraint(
+            models.UniqueConstraint(
                 fields=['subscriber', 'user'],
                 name='unique_subscription'
             )

@@ -6,7 +6,7 @@ from rest_framework.fields import IntegerField, SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
-from blog.models import Ingredient, IngredientInRecipe, Recipe, Tag
+from api.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from users.serializers import ModifiedUserSerializer
 
 

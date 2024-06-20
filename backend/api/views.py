@@ -11,8 +11,8 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from blog.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
-                         ShoppingCart, Tag)
+from api.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
+                        ShoppingCart, Tag)
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import ModifiedPagination
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
@@ -110,7 +110,7 @@ class RecipeViewSet(ModelViewSet):
         file.setFont('Times-Roman', 20)
         file.drawString(50, 50, 'Покупки дня')
         file.line(50, 100, 250, 100)
-        file.drawImage('backend/media/shopping_list/fork_and_knife.png',
+        file.drawImage('media/shopping_list/fork_and_knife.png',
                        350, 50, width=50, height=50)
         str_point = 120
         file.setFont('Times-Roman', 15)
