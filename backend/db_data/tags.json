@@ -1,0 +1,7 @@
+[{"model": "recipes.tag",  "fields": {"name": "Завтрак", "slug": "breakfast"}},
+{"model": "recipes.tag",  "fields": {"name": "Обед", "slug": "lunch"}},
+{"model": "recipes.tag",  "fields": {"name": "Ужин", "slug": "dinner"}},
+{"model": "recipes.tag",  "fields": {"name": "Перекус", "slug": "snack"}},
+{"model": "recipes.tag",  "fields": {"name": "Десерт", "slug": "dessert"}},
+{"model": "recipes.tag",  "fields": {"name": "Веган", "slug": "vegan"}},
+{"model": "recipes.tag",  "fields": {"name": "Без лактозы", "slug": "lactose-free"}}]

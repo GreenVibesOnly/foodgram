@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework.fields import SerializerMethodField
 
-from api.serializers import RecipeSubscribeSerializer
 from .models import Subscribe
 
 
@@ -32,8 +31,8 @@ class ModifiedUserSerializer(UserSerializer):
             'username',
             'first_name',
             'last_name',
-            'is_subscribed',
-            'avatar'
+            'is_subscribed'
+            #'avatar'
         )
 
     def get_is_subscribed(self, obj):
@@ -53,6 +52,7 @@ class SubscribeSerializer(ModifiedUserSerializer):
         )
 
     def get_recipes(self, obj):
+        from recipes.serializers import RecipeSubscribeSerializer
         request = self.context.get('request')
         limit = request.GET.get('recipes_limit')
         recipes = obj.recipes.all()

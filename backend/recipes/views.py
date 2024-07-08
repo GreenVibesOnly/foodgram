@@ -8,16 +8,15 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from api.models import (Favourite, Ingredient, IngredientInRecipe, Recipe,
-                        ShoppingCart, Tag)
-from .filters import IngredientFilter, RecipeFilter
-from .pagination import ModifiedPagination
-from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+from core.filters import IngredientFilter, RecipeFilter
+from core.pagination import ModifiedPagination
+from core.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
+                     ShoppingCart, Tag)
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeShortSerializer, RecipeWriteSerializer,
+                          RecipeSubscribeSerializer, RecipeWriteSerializer,
                           TagSerializer)
 
 
@@ -54,7 +53,7 @@ class RecipeViewSet(ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
         recipe = get_object_or_404(Recipe, id=pk)
         model.objects.create(user=user, recipe=recipe)
-        serializer = RecipeShortSerializer(recipe)
+        serializer = RecipeSubscribeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_resipe(self, model, user, pk, location_name):
@@ -73,9 +72,10 @@ class RecipeViewSet(ModelViewSet):
     def favorite(self, request, pk):
         location_name = 'избранном'
         if request.method == 'POST':
-            return self.add_resipe(Favourite, request.user, pk)
+            return self.add_resipe(Favorite, request.user, pk,
+                                   location_name)
         else:
-            return self.delete_resipe(Favourite, request.user,
+            return self.delete_resipe(Favorite, request.user,
                                       pk, location_name)
 
     @action(
@@ -86,10 +86,17 @@ class RecipeViewSet(ModelViewSet):
     def shopping_cart(self, request, pk):
         location_name = 'корзине покупок'
         if request.method == 'POST':
-            return self.add_resipe(ShoppingCart, request.user, pk)
+            return self.add_resipe(ShoppingCart, request.user, pk,
+                                   location_name)
         else:
             return self.delete_resipe(ShoppingCart, request.user,
                                       pk, location_name)
+
+    @action(
+        detail=True
+    )
+    def get_short_link(self, request, pk):
+        pass
 
     @action(
         detail=False,
@@ -97,10 +104,10 @@ class RecipeViewSet(ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        if not user.shopping_cart.exists():
-            return Response(status=HTTP_400_BAD_REQUEST)
-        ingredients_list = IngredientInRecipe.objects.filter(
-            recipe__shopping_cart__user=request.user
+        if not ShoppingCart.objects.filter(user=user).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        ingredients_list = RecipeIngredient.objects.filter(
+            recipe__in_shopping_cart__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit'

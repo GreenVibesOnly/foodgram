@@ -1,9 +1,14 @@
+import django
 import os
+from django.utils.encoding import smart_str
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+django.utils.encoding.smart_text = smart_str
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,7 +25,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'django_filters',
+    'djoser',
+    'core',
+    'recipes',
     'users',
 ]
 
@@ -52,16 +62,34 @@ TEMPLATES = [
     },
 ]
 
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'HIDE_USERS': False,
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
-        'USER': os.getenv('POSTGRES_USER', 'GreenVibe'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'secretpassword'),
-        'HOST': os.getenv('DB_HOST', 'db'),
-        'PORT': os.getenv('DB_PORT', 5432)
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "mydatabase"
+        #'ENGINE': 'django.db.backends.postgresql',
+        #'NAME': os.getenv('POSTGRES_DB', 'foodgram'),
+        #'USER': os.getenv('POSTGRES_USER', 'GreenVibe'),
+        #'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'secretpassword'),
+        #'HOST': os.getenv('DB_HOST', 'db'),
+        #'PORT': os.getenv('DB_PORT', 5432)
     }
 }
 

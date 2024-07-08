@@ -6,9 +6,11 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.pagination import ModifiedPagination
+from core.pagination import ModifiedPagination
 from .models import Subscribe
-from .serializers import ModifiedUserSerializer, SubscribeSerializer
+from .serializers import (ModifiedUserSerializer,
+                          ModifiedUserCreateSerializer,
+                          SubscribeSerializer)
 
 
 User = get_user_model()
@@ -16,8 +18,12 @@ User = get_user_model()
 
 class ModifiedUserViewSet(UserViewSet):
     queryset = User.objects.all()
-    serializer_class = ModifiedUserSerializer
     pagination_class = ModifiedPagination
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ModifiedUserCreateSerializer
+        return ModifiedUserSerializer
 
     @action(
         detail=True,
@@ -52,7 +58,9 @@ class ModifiedUserViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(subscribing__user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(pages,
-                                         many=True,
-                                         context={'request': request})
+        serializer = SubscribeSerializer(
+            pages,
+            many=True,
+            context={'request': request}
+        )
         return self.get_paginated_response(serializer.data)

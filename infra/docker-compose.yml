@@ -6,21 +6,23 @@ volumes:
   media:
 
 services:
-  db:
-    image: postgres:13
-    env_file: ../.env
-    volumes:
-      - pg_data:/var/lib/postgresql/data
+  #db:
+    #image: postgres:13
+    #env_file: ../.env
+    #volumes:
+    #  - pg_data:/var/lib/postgresql/data
 
   backend:
     container_name: foodgram-back
     build: ../backend/
     env_file: ../.env
-    volumes:
-      - static:/backend_static
-      - media:/media
-    depends_on:
-      - db
+    #volumes:
+    #  - static:/backend_static
+    #  - media:/media
+    #depends_on:
+    #  - db
+    ports:
+      - '8000:8000'
 
   frontend:
     container_name: foodgram-front

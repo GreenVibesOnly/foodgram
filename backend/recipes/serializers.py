@@ -6,8 +6,9 @@ from rest_framework.fields import IntegerField, SerializerMethodField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
-from api.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from users.serializers import ModifiedUserSerializer
+from .models import (Ingredient, Favorite, RecipeIngredient, Recipe,
+                     ShoppingCart, Tag)
 
 
 User = get_user_model()
@@ -29,7 +30,7 @@ class IngredientInRecipeWriteSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
 
     class Meta:
-        model = IngredientInRecipe
+        model = RecipeIngredient
         fields = ('id', 'amount')
 
 
@@ -73,13 +74,13 @@ class RecipeReadSerializer(ModelSerializer):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return user.favorites.filter(recipe=obj).exists()
+        return Favorite.objects.filter(recipe=obj, user=user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return user.shopping_cart.filter(recipe=obj).exists()
+        return ShoppingCart.objects.filter(recipe=obj, user=user).exists()
 
 
 class RecipeWriteSerializer(ModelSerializer):
@@ -117,25 +118,25 @@ class RecipeWriteSerializer(ModelSerializer):
         ingredients = value
         if not ingredients:
             raise ValidationError('Добавьте хотя бы один ингредиент')
+        for item in ingredients:
+            try:
+                int(item["amount"])
+            except (ValueError, TypeError):
+                raise ValidationError(
+                    'Количество ингредиента должно быть указано числом'
+                )
+            if int(item['amount']) <= 0:
+                raise ValidationError(
+                    'Количество ингредиента должно быть больше 0'
+                )
         ingredients_list = [
             get_object_or_404(Ingredient, id=ingredient['id'])
             for ingredient in ingredients
         ]
-        for ingredient in ingredients_list:
-            if len(ingredients_list) != len(set(ingredients_list)):
-                raise ValidationError(
-                    'Ингредиенты не должны повторяться'
-                )
-            try:
-                int(ingredient['amount'])
-            except (ValueError, TypeError):
-                raise ValidationError(
-                    'Количество ингредиента нужно указать числом'
-                )
-            if int(ingredient['amount']) <= 0:
-                raise ValidationError(
-                    'Количество ингредиента должно быть больше 0'
-                )
+        if len(ingredients_list) != len(set(ingredients_list)):
+            raise ValidationError(
+                'Ингредиенты не должны повторяться'
+            )
         return value
 
     def validate_cooking_time(self, value):
@@ -160,9 +161,9 @@ class RecipeWriteSerializer(ModelSerializer):
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
         for ingredient in ingredients:
-            IngredientInRecipe.objects.create(
+            RecipeIngredient.objects.create(
                 recipe=recipe,
-                ingredient=ingredient['id'],
+                ingredient=Ingredient.objects.get(id=ingredient['id']),
                 amount=ingredient['amount']
             )
         return recipe
@@ -177,11 +178,11 @@ class RecipeWriteSerializer(ModelSerializer):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
         instance.tags.set(tags)
-        IngredientInRecipe.objects.filter(recipe=instance).delete()
+        RecipeIngredient.objects.filter(recipe=instance).delete()
         for ingredient in ingredients:
-            IngredientInRecipe.objects.create(
+            RecipeIngredient.objects.create(
                 recipe=instance,
-                ingredient=ingredient['id'],
+                ingredient=Ingredient.objects.get(id=ingredient['id']),
                 amount=ingredient['amount']
             )
         instance.save()
