@@ -31,8 +31,8 @@ class ModifiedUserSerializer(UserSerializer):
             'username',
             'first_name',
             'last_name',
-            'is_subscribed'
-            #'avatar'
+            'is_subscribed',
+            'avatar'
         )
 
     def get_is_subscribed(self, obj):
