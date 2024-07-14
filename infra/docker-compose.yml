@@ -16,13 +16,11 @@ services:
     container_name: foodgram-back
     build: ../backend/
     env_file: ../.env
-    #volumes:
-    #  - static:/backend_static
-    #  - media:/media
     #depends_on:
     #  - db
-    ports:
-      - '8000:8000'
+    volumes:
+      - static:/backend_static
+      - media:/app/media
 
   frontend:
     container_name: foodgram-front

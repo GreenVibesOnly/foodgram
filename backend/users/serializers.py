@@ -1,11 +1,22 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from djoser.serializers import (UserCreateSerializer, UserSerializer)
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
+from rest_framework.serializers import ModelSerializer
 
 from .models import Subscribe
 
 
 User = get_user_model()
+
+
+class AvatarSerializer(ModelSerializer):
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = User
+        fields = ('avatar',)
 
 
 class ModifiedUserCreateSerializer(UserCreateSerializer):
@@ -18,6 +29,13 @@ class ModifiedUserCreateSerializer(UserCreateSerializer):
             'last_name',
             'password',
         )
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise ValidationError(
+                'Этот адрес электронной почты уже используется'
+            )
+        return value
 
 
 class ModifiedUserSerializer(UserSerializer):
@@ -55,7 +73,7 @@ class SubscribeSerializer(ModifiedUserSerializer):
         from recipes.serializers import RecipeSubscribeSerializer
         request = self.context.get('request')
         limit = request.GET.get('recipes_limit')
-        recipes = obj.recipes.all()
+        recipes = obj.authored_recipes.all()
         if limit:
             recipes = recipes[:int(limit)]
         serializer = RecipeSubscribeSerializer(recipes, many=True)

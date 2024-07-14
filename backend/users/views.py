@@ -3,12 +3,14 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.pagination import ModifiedPagination
 from .models import Subscribe
-from .serializers import (ModifiedUserSerializer,
+from .serializers import (AvatarSerializer,
+                          ModifiedUserSerializer,
                           ModifiedUserCreateSerializer,
                           SubscribeSerializer)
 
@@ -32,14 +34,19 @@ class ModifiedUserViewSet(UserViewSet):
     )
     def subscribe(self, request, **kwargs):
         user = request.user
-        author_id = self.kwargs.get('id')
-        author = get_object_or_404(User, id=author_id)
+        author = get_object_or_404(User, id=self.kwargs.get('id'))
 
         if request.method == 'POST':
+            if Subscribe.objects.filter(user=user, subscriber=author).exists():
+                raise ValidationError(
+                    'Вы уже подписаны на этого автора', code=400
+                )
+            if user == author:
+                raise ValidationError(
+                    'Нельзя подписаться на самого себя', code=400
+                )
             serializer = SubscribeSerializer(author,
-                                             data=request.data,
                                              context={"request": request})
-            serializer.is_valid(raise_exception=True)
             Subscribe.objects.create(user=user, subscriber=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -64,3 +71,17 @@ class ModifiedUserViewSet(UserViewSet):
             context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=['put', 'delete'])
+    def avatar(self, request, **kwargs):
+        user = request.user
+        if request.method == 'PUT':
+            serializers = AvatarSerializer(user, data=request.data)
+            serializers.is_valid(raise_exception=True)
+            serializers.save()
+            return Response(serializers.data, status=200)
+        user.avatar = None
+        user.save()
+        return Response(status=204)
