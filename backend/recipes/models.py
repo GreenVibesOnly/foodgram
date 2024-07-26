@@ -87,7 +87,7 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         'Изображение',
-        upload_to='media/recipes/'
+        upload_to='recipes/images/'
     )
     text = models.TextField(
         'Описание'
@@ -149,7 +149,7 @@ class Favorite(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_favorites',
+        related_name='favorites',
         verbose_name='Рецепт',
     )
 
@@ -176,7 +176,7 @@ class ShoppingCart(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_shopping_cart',
+        related_name='shopping_cart',
         verbose_name='Рецепт',
     )
 
@@ -190,3 +190,30 @@ class ShoppingCart(models.Model):
 
     def __str__(self):
         return f'{self.user} {self.recipe} - shopping cart'
+
+
+class ShortLink(models.Model):
+
+    recipe = models.OneToOneField(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='short_link',
+        verbose_name='Рецепт',
+        unique=True
+    )
+
+    short_link = models.URLField(
+        'Короткая ссылка',
+        unique=True
+    )
+
+    class Meta:
+        verbose_name = 'Короткая ссылка'
+        verbose_name_plural = 'Короткие ссылки'
+        constraints = [
+            models.UniqueConstraint(fields=['short_link', 'recipe'],
+                                    name='unique_shortlink')
+        ]
+
+    def __str__(self):
+        return f'{self.recipe} short link'

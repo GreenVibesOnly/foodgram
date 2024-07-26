@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.pagination import ModifiedPagination
+from core.permissions import IsUserOrReadOnly, IsAdminOrReadOnly
 from .models import Subscribe
 from .serializers import (AvatarSerializer,
                           ModifiedUserSerializer,
@@ -20,9 +21,12 @@ User = get_user_model()
 
 class ModifiedUserViewSet(UserViewSet):
     queryset = User.objects.all()
+    permission_classes = (IsUserOrReadOnly | IsAdminOrReadOnly,)
     pagination_class = ModifiedPagination
 
     def get_serializer_class(self):
+        #if self.action == 'subscribe':
+        #    return SubscribeSerializer
         if self.request.method == 'POST':
             return ModifiedUserCreateSerializer
         return ModifiedUserSerializer
@@ -59,14 +63,15 @@ class ModifiedUserViewSet(UserViewSet):
 
     @action(
         detail=False,
+        methods=['get', ],
         permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
-        user = request.user
-        queryset = User.objects.filter(subscribing__user=user)
-        pages = self.paginate_queryset(queryset)
+        #user = request.user
+        #queryset = User.objects.filter(subscribing__user=user)
+        #pages = self.paginate_queryset(queryset)
         serializer = SubscribeSerializer(
-            pages,
+            #pages,
             many=True,
             context={'request': request}
         )

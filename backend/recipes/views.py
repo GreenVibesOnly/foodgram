@@ -1,6 +1,9 @@
+import random
+import string
+
 from django.db.models import Sum
 from django.http import FileResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from io import BytesIO
 from reportlab.pdfgen import canvas
@@ -14,10 +17,10 @@ from core.filters import IngredientFilter, RecipeFilter
 from core.pagination import ModifiedPagination
 from core.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
-                     ShoppingCart, Tag)
+                     ShoppingCart, ShortLink, Tag)
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeSubscribeSerializer, RecipeWriteSerializer,
-                          TagSerializer)
+                          ShortLinkSerializer, TagSerializer)
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -93,12 +96,6 @@ class RecipeViewSet(ModelViewSet):
                                       pk, location_name)
 
     @action(
-        detail=True
-    )
-    def get_short_link(self, request, pk):
-        pass
-
-    @action(
         detail=False,
         permission_classes=[IsAuthenticated]
     )
@@ -136,3 +133,32 @@ class RecipeViewSet(ModelViewSet):
             as_attachment=True,
             filename='Foodgram_shopping_list.pdf'
         )
+
+    @action(
+        detail=True
+    )
+    def short_link(self, request, short_url):
+        recipe = get_object_or_404(ShortLink, short_link=short_url)
+        full_link = (f'{self.request.scheme}://{self.request.get_host()}'
+                     f'/recipes/{str(recipe.recipe_id)}')
+        return redirect(full_link)
+
+
+class ShortLinkViewSet(ModelViewSet):
+    queryset = ShortLink.objects.all()
+    serializer_class = ShortLinkSerializer
+
+    @action(
+        detail=True,
+        url_path='get-link'
+    )
+    def short_link(self, request, pk):
+        if not ShortLink.objects.filter(recipe__id=pk).exists():
+            short_link = ''.join(random.choice(
+                string.ascii_lowercase + string.digits) for _ in range(3))
+            recipe = get_object_or_404(Recipe, id=pk)
+            ShortLink.objects.create(recipe=recipe, short_link=short_link)
+        short_link_obj = get_object_or_404(ShortLink, recipe_id=pk)
+        base_link = f'{self.request.scheme}://{self.request.get_host()}/s/'
+        short_link = str(base_link + short_link_obj.short_link)
+        return Response({"short-link": short_link})

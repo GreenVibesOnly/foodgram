@@ -8,7 +8,7 @@ from rest_framework.serializers import ModelSerializer
 
 from users.serializers import ModifiedUserSerializer
 from .models import (Ingredient, Favorite, RecipeIngredient, Recipe,
-                     ShoppingCart, Tag)
+                     ShoppingCart, ShortLink, Tag)
 
 
 User = get_user_model()
@@ -193,3 +193,11 @@ class RecipeWriteSerializer(ModelSerializer):
             instance,
             context={'request': self.context.get('request')}
         ).data
+
+
+class ShortLinkSerializer(ModelSerializer):
+    recipe = RecipeReadSerializer(read_only=True)
+
+    class Meta:
+        model = ShortLink
+        fields = '__all__'
