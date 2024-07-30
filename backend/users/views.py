@@ -25,8 +25,6 @@ class ModifiedUserViewSet(UserViewSet):
     pagination_class = ModifiedPagination
 
     def get_serializer_class(self):
-        #if self.action == 'subscribe':
-        #    return SubscribeSerializer
         if self.request.method == 'POST':
             return ModifiedUserCreateSerializer
         return ModifiedUserSerializer
@@ -67,14 +65,10 @@ class ModifiedUserViewSet(UserViewSet):
         permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
-        #user = request.user
-        #queryset = User.objects.filter(subscribing__user=user)
-        #pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(
-            #pages,
-            many=True,
-            context={'request': request}
+        paginated_queryset = self.paginate_queryset(
+            User.objects.filter(subscribing__user=request.user)
         )
+        serializer = SubscribeSerializer(paginated_queryset, many=True)
         return self.get_paginated_response(serializer.data)
 
     @action(

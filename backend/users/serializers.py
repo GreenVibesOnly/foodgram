@@ -80,4 +80,4 @@ class SubscribeSerializer(ModifiedUserSerializer):
         return serializer.data
 
     def get_recipes_count(self, obj):
-        return obj.recipes.count()
+        return obj.authored_recipes.count()

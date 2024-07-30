@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import IntegerField, SerializerMethodField
+from rest_framework.fields import (ReadOnlyField, SerializerMethodField,
+                                   IntegerField)
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
@@ -26,12 +26,16 @@ class IngredientSerializer(ModelSerializer):
         fields = '__all__'
 
 
-class IngredientInRecipeWriteSerializer(ModelSerializer):
+class IngredientInRecipeSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
+    name = ReadOnlyField(source='ingredient.name')
+    measurement_unit = ReadOnlyField(
+        source='ingredient.measurement_unit'
+    )
 
     class Meta:
         model = RecipeIngredient
-        fields = ('id', 'amount')
+        fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
 class RecipeSubscribeSerializer(ModelSerializer):
@@ -50,7 +54,7 @@ class RecipeSubscribeSerializer(ModelSerializer):
 class RecipeReadSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = ModifiedUserSerializer(read_only=True)
-    ingredients = IngredientSerializer(many=True)
+    ingredients = SerializerMethodField()
     image = Base64ImageField()
     is_favorited = SerializerMethodField(read_only=True)
     is_in_shopping_cart = SerializerMethodField(read_only=True)
@@ -69,6 +73,19 @@ class RecipeReadSerializer(ModelSerializer):
             'text',
             'cooking_time',
         )
+
+    def get_ingredients(self, obj):
+        recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
+        return [
+            {
+                'id': recipe_ingredient.ingredient.id,
+                'name': recipe_ingredient.ingredient.name,
+                'amount': recipe_ingredient.amount,
+                'measurement_unit':
+                    recipe_ingredient.ingredient.measurement_unit
+            }
+            for recipe_ingredient in recipe_ingredients
+        ]
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
@@ -89,7 +106,7 @@ class RecipeWriteSerializer(ModelSerializer):
         many=True
     )
     author = ModifiedUserSerializer(read_only=True)
-    ingredients = IngredientInRecipeWriteSerializer(many=True)
+    ingredients = IngredientInRecipeSerializer(many=True)
     image = Base64ImageField()
 
     class Meta:
@@ -120,7 +137,7 @@ class RecipeWriteSerializer(ModelSerializer):
             raise ValidationError('Добавьте хотя бы один ингредиент')
         for item in ingredients:
             try:
-                int(item["amount"])
+                int(item['amount'])
             except (ValueError, TypeError):
                 raise ValidationError(
                     'Количество ингредиента должно быть указано числом'
@@ -129,13 +146,10 @@ class RecipeWriteSerializer(ModelSerializer):
                 raise ValidationError(
                     'Количество ингредиента должно быть больше 0'
                 )
-        ingredients_list = [
-            get_object_or_404(Ingredient, id=ingredient['id'])
-            for ingredient in ingredients
-        ]
-        if len(ingredients_list) != len(set(ingredients_list)):
+        ingredient_list = [ingredient['id'] for ingredient in ingredients]
+        if len(ingredient_list) != len(set(ingredient_list)):
             raise ValidationError(
-                'Ингредиенты не должны повторяться'
+                'Ингредиенты не должны повторяться.'
             )
         return value
 
