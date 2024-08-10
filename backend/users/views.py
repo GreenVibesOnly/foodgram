@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
+from djoser.serializers import SetPasswordSerializer
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -25,9 +26,25 @@ class ModifiedUserViewSet(UserViewSet):
     pagination_class = ModifiedPagination
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
+        if self.action == 'subscriptions':
+            return SubscribeSerializer
+        elif self.request.method == 'POST':
             return ModifiedUserCreateSerializer
         return ModifiedUserSerializer
+
+    @action(detail=False,
+            methods=['post'],
+            permission_classes=[IsAuthenticated])
+    def set_password(self, request, *args, **kwargs):
+        serializer = SetPasswordSerializer(
+            data=request.data,
+            context={'request': request})
+        if serializer.is_valid(raise_exception=True):
+            self.request.user.set_password(serializer.data['new_password'])
+            self.request.user.save()
+            return Response('Пароль успешно изменен',
+                            status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
@@ -39,7 +56,7 @@ class ModifiedUserViewSet(UserViewSet):
         author = get_object_or_404(User, id=self.kwargs.get('id'))
 
         if request.method == 'POST':
-            if Subscribe.objects.filter(user=user, subscriber=author).exists():
+            if Subscribe.objects.filter(user=user, author=author).exists():
                 raise ValidationError(
                     'Вы уже подписаны на этого автора', code=400
                 )
@@ -47,29 +64,35 @@ class ModifiedUserViewSet(UserViewSet):
                 raise ValidationError(
                     'Нельзя подписаться на самого себя', code=400
                 )
-            serializer = SubscribeSerializer(author,
-                                             context={"request": request})
-            Subscribe.objects.create(user=user, subscriber=author)
+            serializer = SubscribeSerializer(
+                author, context={'request': request}
+            )
+            Subscribe.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            subscription = get_object_or_404(Subscribe,
-                                             user=user,
-                                             subscriber=author)
+            subscription = get_object_or_404(
+                Subscribe, user=user, author=author
+            )
             subscription.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
-        methods=['get', ],
         permission_classes=[IsAuthenticated]
     )
     def subscriptions(self, request):
-        paginated_queryset = self.paginate_queryset(
-            User.objects.filter(subscribing__user=request.user)
-        )
-        serializer = SubscribeSerializer(paginated_queryset, many=True)
-        return self.get_paginated_response(serializer.data)
+        queryset = User.objects.filter(subscriber__user=request.user)
+        return super().list(queryset)
+        #paginated_queryset = self.paginate_queryset(
+        #    User.objects.filter(subscriber__user=request.user)
+        #)
+        #return self.get_paginated_response(serializer.data)
+        #queryset = User.objects.filter(subscriber__user=request.user)
+        #serializer = SubscribeSerializer(
+        #    queryset, many=True, context={'request': request}
+        #)
+        #return Response(serializer.data)
 
     @action(
         detail=True,
@@ -80,7 +103,7 @@ class ModifiedUserViewSet(UserViewSet):
             serializers = AvatarSerializer(user, data=request.data)
             serializers.is_valid(raise_exception=True)
             serializers.save()
-            return Response(serializers.data, status=200)
+            return Response(serializers.data)
         user.avatar = None
         user.save()
-        return Response(status=204)
+        return Response(status=status.HTTP_204_NO_CONTENT)

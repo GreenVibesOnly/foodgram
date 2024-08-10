@@ -44,16 +44,16 @@ class User(AbstractUser):
 
 class Subscribe(models.Model):
 
-    subscriber = models.ForeignKey(
+    author = models.ForeignKey(
         User,
-        related_name='subscriber',
-        verbose_name='Подписчик',
+        related_name='author',
+        verbose_name='Автор',
         on_delete=models.CASCADE,
     )
     user = models.ForeignKey(
         User,
-        related_name='subscribing',
-        verbose_name='Пользователь',
+        related_name='subscriber',
+        verbose_name='Подписчик',
         on_delete=models.CASCADE,
     )
 
@@ -61,7 +61,7 @@ class Subscribe(models.Model):
         ordering = ['-id']
         constraints = [
             models.UniqueConstraint(
-                fields=['subscriber', 'user'],
+                fields=['author', 'user'],
                 name='unique_subscription'
             )
         ]

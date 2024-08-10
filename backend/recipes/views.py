@@ -1,12 +1,11 @@
+from datetime import datetime
 import random
 import string
 
 from django.db.models import Sum
-from django.http import FileResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from io import BytesIO
-from reportlab.pdfgen import canvas
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
@@ -65,7 +64,7 @@ class RecipeViewSet(ModelViewSet):
             obj.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(f'Рецепта нет в {location_name}',
-                        status=status.HTTP_400_BAD_REQUEST)
+                        status=status.HTTP_404_NOT_FOUND)
 
     @action(
         detail=True,
@@ -104,35 +103,31 @@ class RecipeViewSet(ModelViewSet):
         if not ShoppingCart.objects.filter(user=user).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
         ingredients_list = RecipeIngredient.objects.filter(
-            recipe__in_shopping_cart__user=request.user
+            recipe__shopping_cart__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit'
         ).annotate(amount=Sum('amount'))
-        buffer = BytesIO()
-        file = canvas.Canvas('Foodgram_shopping_list.pdf')
-        file.setFont('Times-Roman', 20)
-        file.drawString(50, 50, 'Покупки дня')
-        file.line(50, 100, 250, 100)
-        file.drawImage('media/shopping_list/fork_and_knife.png',
-                       350, 50, width=50, height=50)
-        str_point = 120
-        file.setFont('Times-Roman', 15)
-        for ingredient in ingredients_list:
-            ingredient_name = ingredient['ingredient__name']
-            measurement_unit = ingredient['ingredient__measurement_unit']
-            amount = ingredient['amount']
-            file.drawString(50, str_point, f'- {ingredient_name}: '
-                            f'{amount} {measurement_unit}')
-            str_point += 20
-        file.drawString(50, 800, 'Foodgram')
-        file.save()
-        buffer.seek(0)
-        return FileResponse(
-            buffer,
-            as_attachment=True,
-            filename='Foodgram_shopping_list.pdf'
+        today = datetime.today()
+        shopping_list = (
+            f'Список покупок дня: {today:%d-%m-%Y}\n\n'
         )
+        shopping_list += '\n'.join([
+            f'• {ingredient["ingredient__name"]} '
+            f'- {ingredient["amount"]} '
+            f'{ingredient["ingredient__measurement_unit"]}'
+            for ingredient in ingredients_list
+        ])
+        shopping_list += (
+            '- любовь - 1 горсточка ❤'
+            '\n\n\n\n©Foodgram'
+        )
+
+        filename = f'{user.username}_shopping_list.txt'
+        response = HttpResponse(shopping_list, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+
+        return response
 
     @action(
         detail=True
