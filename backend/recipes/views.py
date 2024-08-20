@@ -110,7 +110,8 @@ class RecipeViewSet(ModelViewSet):
         ).annotate(amount=Sum('amount'))
         today = datetime.today()
         shopping_list = (
-            f'Список покупок дня: {today:%d-%m-%Y}\n\n'
+            f'{today:%d-%m-%Y}\n\n'
+            'Сегодня вам понадобятся:'
         )
         shopping_list += '\n'.join([
             f'• {ingredient["ingredient__name"]} '
@@ -119,7 +120,7 @@ class RecipeViewSet(ModelViewSet):
             for ingredient in ingredients_list
         ])
         shopping_list += (
-            '- любовь - 1 горсточка ❤'
+            '\n• любовь - 1 горсточка ❤'
             '\n\n\n\n©Foodgram'
         )
 

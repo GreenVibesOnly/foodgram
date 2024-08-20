@@ -83,7 +83,19 @@ class ModifiedUserViewSet(UserViewSet):
     )
     def subscriptions(self, request):
         queryset = User.objects.filter(subscriber__user=request.user)
-        return super().list(queryset)
+        pages = self.paginate_queryset(queryset)
+        serializer = SubscribeSerializer(pages,
+                                         many=True,
+                                         context={'request': request})
+        return self.get_paginated_response(serializer.data)
+        #subscriptions = User.objects.filter(
+        #    subscriber__user=request.user
+        #).prefetch_related('recipes')
+        #paginated_queryset = self.paginate_queryset(subscriptions)
+        #serializer = self.get_serializer(paginated_queryset, many=True)
+        #return self.get_paginated_response(serializer.data)
+        #return Response(queryset)
+        #return super().list(queryset)
         #paginated_queryset = self.paginate_queryset(
         #    User.objects.filter(subscriber__user=request.user)
         #)
