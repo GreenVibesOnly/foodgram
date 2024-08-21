@@ -5,7 +5,6 @@ from rest_framework.fields import (IntegerField, ReadOnlyField,
                                    SerializerMethodField)
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
-
 from users.serializers import ModifiedUserSerializer
 
 from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
