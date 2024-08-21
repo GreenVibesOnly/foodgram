@@ -1,15 +1,15 @@
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import (ReadOnlyField, SerializerMethodField,
-                                   IntegerField)
+from rest_framework.fields import (IntegerField, ReadOnlyField,
+                                   SerializerMethodField)
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
 from users.serializers import ModifiedUserSerializer
-from .models import (Ingredient, Favorite, RecipeIngredient, Recipe,
-                     ShoppingCart, ShortLink, Tag)
 
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, ShortLink, Tag)
 
 User = get_user_model()
 

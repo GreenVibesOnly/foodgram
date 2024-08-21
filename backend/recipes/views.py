@@ -1,6 +1,6 @@
-from datetime import datetime
 import random
 import string
+from datetime import datetime
 
 from django.db.models import Sum
 from django.http import HttpResponse
@@ -15,7 +15,8 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from core.filters import IngredientFilter, RecipeFilter
 from core.pagination import ModifiedPagination
 from core.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
-from .models import (Favorite, Ingredient, RecipeIngredient, Recipe,
+
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                      ShoppingCart, ShortLink, Tag)
 from .serializers import (IngredientSerializer, RecipeReadSerializer,
                           RecipeSubscribeSerializer, RecipeWriteSerializer,

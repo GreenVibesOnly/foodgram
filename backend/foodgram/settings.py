@@ -1,9 +1,9 @@
-import django
 import os
-from django.utils.encoding import smart_str
 from datetime import timedelta
 from pathlib import Path
 
+import django
+from django.utils.encoding import smart_str
 from dotenv import load_dotenv
 
 load_dotenv()

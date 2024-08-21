@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from djoser.views import UserViewSet
 from djoser.serializers import SetPasswordSerializer
+from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -9,13 +9,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.pagination import ModifiedPagination
-from core.permissions import IsUserOrReadOnly, IsAdminOrReadOnly
-from .models import Subscribe
-from .serializers import (AvatarSerializer,
-                          ModifiedUserSerializer,
-                          ModifiedUserCreateSerializer,
-                          SubscribeSerializer)
+from core.permissions import IsAdminOrReadOnly, IsUserOrReadOnly
 
+from .models import Subscribe
+from .serializers import (AvatarSerializer, ModifiedUserCreateSerializer,
+                          ModifiedUserSerializer, SubscribeSerializer)
 
 User = get_user_model()
 
