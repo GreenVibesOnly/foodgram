@@ -34,7 +34,7 @@ services:
     depends_on:
       - backend
       - frontend
-    container_name: foodgram-proxy
+    container_name: foodgram-gateway
     image: greenvibe/foodgram_gateway
     ports:
       - "80:80"
