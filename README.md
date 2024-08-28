@@ -49,14 +49,14 @@ sudo sh ./get-docker.sh
 sudo apt-get install docker-compose-plugin
 ```
 
-Создать папку kittygram:
+Создать папку общедоступную foodgram:
 ```
-sudo mkdir kittygram
+sudo mkdir foodgram
 ```
 
-В папке kittygram создать файл docker-compose.production.yml и скопировать туда содержимое файла docker-compose.production.yml из проекта:
+В папке foodgram создать файл docker-compose.production.yml и скопировать туда содержимое файла docker-compose.production.yml из проекта:
 ```
-cd kittygram
+cd foodgram
 sudo nano docker-compose.production.yml
 ```
 Таким же образом создать файлы .env и nginx.conf из скопировать в них содержимое файлов .env.example и infra/nginx.conf соответственно.
@@ -66,7 +66,7 @@ sudo nano docker-compose.production.yml
 sudo nano /etc/nginx/sites-enabled/default
 ```
 
-Из дирректории kittygram выполнить команды:
+Из дирректории foodgram выполнить команды:
 ```
 sudo docker compose -f docker-compose.production.yml pull
 sudo docker compose -f docker-compose.production.yml down
