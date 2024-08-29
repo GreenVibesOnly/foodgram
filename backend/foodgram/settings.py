@@ -12,11 +12,11 @@ django.utils.encoding.smart_text = smart_str
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-^cm1^isue)$3n(d8gouu8pk+b1^orl#t8_#d)kkh5298q&2iou')
+SECRET_KEY = os.getenv('SECRET_KEY', 'very_sekret_key')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['158.160.77.163', '127.0.0.1', 'localhost', 'foodgram.freedynamicdns.net']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '158.160.77.163,127.0.0.1,localhost,foodgram.freedynamicdns.net,*').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
