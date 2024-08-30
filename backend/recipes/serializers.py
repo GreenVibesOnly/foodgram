@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
@@ -30,6 +31,10 @@ class IngredientInRecipeSerializer(ModelSerializer):
     name = ReadOnlyField(source='ingredient.name')
     measurement_unit = ReadOnlyField(
         source='ingredient.measurement_unit'
+    )
+    amount = IntegerField(
+        max_value=settings.MIN_MODEL_VALUE,
+        min_value=settings.MAX_MODEL_VALUE
     )
 
     class Meta:

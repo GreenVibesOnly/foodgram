@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 User = get_user_model()
@@ -93,10 +94,16 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
-        validators=[MinValueValidator(
-            1,
-            message='Время приготовления не может быть меньше 1 минуты'
-        )]
+        validators=[
+            MinValueValidator(
+                settings.MIN_MODEL_VALUE,
+                message='Время приготовления не может быть меньше 1 минуты'
+            ),
+            MaxValueValidator(
+                settings.MAX_MODEL_VALUE,
+                message='Время приготовления не может быть больше 32 000 минут'
+            )
+        ]
     )
 
     class Meta:
@@ -123,12 +130,23 @@ class RecipeIngredient(models.Model):
         verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField(
-        'Количество'
+        'Количество',
+        validators=[
+            MinValueValidator(
+                settings.MIN_MODEL_VALUE,
+                message='Количество ингредиента не может быть меньше 1'
+            ),
+            MaxValueValidator(
+                settings.MAX_MODEL_VALUE,
+                message='Количество ингредиента не может быть больше 1'
+            )
+        ]
     )
 
     class Meta:
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
+        ordering = ['-id']
 
     def __str__(self):
         return (
@@ -159,6 +177,7 @@ class Favorite(models.Model):
             models.UniqueConstraint(fields=['user', 'recipe'],
                                     name='unique_favourite')
         ]
+        ordering = ['-id']
 
     def __str__(self):
         return f'{self.user} {self.recipe} - favorites'
@@ -186,6 +205,7 @@ class ShoppingCart(models.Model):
             models.UniqueConstraint(fields=['user', 'recipe'],
                                     name='unique_shoppingcart')
         ]
+        ordering = ['-id']
 
     def __str__(self):
         return f'{self.user} {self.recipe} - shopping cart'
@@ -213,6 +233,7 @@ class ShortLink(models.Model):
             models.UniqueConstraint(fields=['short_link', 'recipe'],
                                     name='unique_shortlink')
         ]
+        ordering = ['-id']
 
     def __str__(self):
         return f'{self.recipe} short link'

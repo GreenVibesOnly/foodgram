@@ -127,3 +127,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = '/app/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+MAX_MODEL_VALUE = 32000
+MIN_MODEL_VALUE = 1
