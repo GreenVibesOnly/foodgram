@@ -82,13 +82,13 @@ class RecipeReadSerializer(ModelSerializer):
         user = self.context.request.user
         if user.is_anonymous:
             return False
-        return Favorite.objects.filter(recipe=obj, user=user).exists()
+        return user.favorites_recipes.filter(recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context.request.user
         if user.is_anonymous:
             return False
-        return ShoppingCart.objects.filter(recipe=obj, user=user).exists()
+        return user.shopping_cart_recipes.filter(recipe=obj).exists()
 
 
 class RecipeWriteSerializer(ModelSerializer):
@@ -99,6 +99,10 @@ class RecipeWriteSerializer(ModelSerializer):
     author = ModifiedUserSerializer(read_only=True)
     ingredients = IngredientInRecipeSerializer(many=True)
     image = Base64ImageField()
+    cooking_time = IntegerField(
+        max_value=settings.MIN_MODEL_VALUE,
+        min_value=settings.MAX_MODEL_VALUE
+    )
 
     class Meta:
         model = Recipe
@@ -126,17 +130,6 @@ class RecipeWriteSerializer(ModelSerializer):
         ingredients = value
         if not ingredients:
             raise ValidationError('Добавьте хотя бы один ингредиент')
-        for item in ingredients:
-            try:
-                int(item['amount'])
-            except (ValueError, TypeError):
-                raise ValidationError(
-                    'Количество ингредиента должно быть указано числом'
-                )
-            if int(item['amount']) <= 0:
-                raise ValidationError(
-                    'Количество ингредиента должно быть больше 0'
-                )
         ingredient_list = [ingredient['id'] for ingredient in ingredients]
         if len(ingredient_list) != len(set(ingredient_list)):
             raise ValidationError(
@@ -147,17 +140,7 @@ class RecipeWriteSerializer(ModelSerializer):
     def validate_cooking_time(self, value):
         cooking_time = value
         if not cooking_time:
-            raise ValidationError('Добавьте хотя бы один ингредиент')
-        try:
-            int(cooking_time)
-        except (ValueError, TypeError):
-            raise ValidationError(
-                'Время приготовления нужно указать числом'
-            )
-        if int(cooking_time) < 1:
-            raise ValidationError(
-                'Время приготовления не может быть меньше 1 минуты'
-            )
+            raise ValidationError('Добавьте время приготовления')
         return value
 
     def create(self, validated_data):
