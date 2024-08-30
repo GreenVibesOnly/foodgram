@@ -58,7 +58,7 @@ class RecipeSubscribeSerializer(ModelSerializer):
 class RecipeReadSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = ModifiedUserSerializer(read_only=True)
-    ingredients = SerializerMethodField()
+    ingredients = IngredientInRecipeSerializer(many=True, read_only=True)
     image = Base64ImageField()
     is_favorited = SerializerMethodField(read_only=True)
     is_in_shopping_cart = SerializerMethodField(read_only=True)
@@ -77,19 +77,6 @@ class RecipeReadSerializer(ModelSerializer):
             'text',
             'cooking_time',
         )
-
-    def get_ingredients(self, obj):
-        recipe_ingredients = RecipeIngredient.objects.filter(recipe=obj)
-        return [
-            {
-                'id': recipe_ingredient.ingredient.id,
-                'name': recipe_ingredient.ingredient.name,
-                'amount': recipe_ingredient.amount,
-                'measurement_unit':
-                    recipe_ingredient.ingredient.measurement_unit
-            }
-            for recipe_ingredient in recipe_ingredients
-        ]
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
