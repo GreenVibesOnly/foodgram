@@ -25,7 +25,7 @@ class ModifiedUserViewSet(UserViewSet):
     def get_serializer_class(self):
         if self.action == 'subscriptions':
             return SubscribeSerializer
-        elif self.request.method == 'POST':
+        if self.request.method == 'POST':
             return ModifiedUserCreateSerializer
         return ModifiedUserSerializer
 
@@ -53,13 +53,15 @@ class ModifiedUserViewSet(UserViewSet):
         author = get_object_or_404(User, id=self.kwargs.get('id'))
 
         if request.method == 'POST':
-            if Subscribe.objects.filter(user=user, author=author).exists():
+            if user.subscriber.filter(author=author).exists():
                 raise ValidationError(
-                    'Вы уже подписаны на этого автора', code=400
+                    'Вы уже подписаны на этого автора',
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             if user == author:
                 raise ValidationError(
-                    'Нельзя подписаться на самого себя', code=400
+                    'Нельзя подписаться на самого себя',
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             serializer = SubscribeSerializer(
                 author, context={'request': request}

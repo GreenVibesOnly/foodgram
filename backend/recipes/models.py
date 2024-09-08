@@ -138,7 +138,7 @@ class RecipeIngredient(models.Model):
             ),
             MaxValueValidator(
                 settings.MAX_MODEL_VALUE,
-                message='Количество ингредиента не может быть больше 1'
+                message='Количество ингредиента не может быть больше 32000'
             )
         ]
     )

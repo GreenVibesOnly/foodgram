@@ -2,6 +2,7 @@ import random
 import string
 from datetime import datetime
 
+from django.conf import settings
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -76,9 +77,8 @@ class RecipeViewSet(ModelViewSet):
         if request.method == 'POST':
             return self.add_resipe(Favorite, request.user, pk,
                                    location_name)
-        else:
-            return self.delete_resipe(Favorite, request.user,
-                                      pk, location_name)
+        return self.delete_resipe(Favorite, request.user,
+                                  pk, location_name)
 
     @action(
         detail=True,
@@ -90,9 +90,8 @@ class RecipeViewSet(ModelViewSet):
         if request.method == 'POST':
             return self.add_resipe(ShoppingCart, request.user, pk,
                                    location_name)
-        else:
-            return self.delete_resipe(ShoppingCart, request.user,
-                                      pk, location_name)
+        return self.delete_resipe(ShoppingCart, request.user,
+                                  pk, location_name)
 
     @action(
         detail=False,
@@ -100,7 +99,7 @@ class RecipeViewSet(ModelViewSet):
     )
     def download_shopping_cart(self, request):
         user = request.user
-        if not ShoppingCart.objects.filter(user=user).exists():
+        if not user.shopping_cart_recipes.exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
         ingredients_list = RecipeIngredient.objects.filter(
             recipe__shopping_cart__user=request.user
@@ -151,7 +150,9 @@ class ShortLinkViewSet(ModelViewSet):
     def short_link(self, request, pk):
         if not ShortLink.objects.filter(recipe__id=pk).exists():
             short_link = ''.join(random.choice(
-                string.ascii_lowercase + string.digits) for _ in range(3))
+                string.ascii_lowercase + string.digits)
+                for _ in range(settings.SHORT_LINK_LEN)
+            )
             recipe = get_object_or_404(Recipe, id=pk)
             ShortLink.objects.create(recipe=recipe, short_link=short_link)
         short_link_obj = get_object_or_404(ShortLink, recipe_id=pk)

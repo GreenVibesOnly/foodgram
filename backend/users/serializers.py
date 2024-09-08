@@ -53,7 +53,7 @@ class ModifiedUserSerializer(UserSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
+        user = self.context['request'].user
         if user.is_anonymous:
             return False
         return Subscribe.objects.filter(user=user, author=obj).exists()
@@ -70,8 +70,8 @@ class SubscribeSerializer(ModifiedUserSerializer):
 
     def get_recipes(self, obj):
         from recipes.serializers import RecipeSubscribeSerializer
-        request = self.context.get('request')
-        limit = request.GET.get('recipes_limit')
+        request = self.context['request']
+        limit = request.GET['recipes_limit']
         recipes = obj.authored_recipes.all()
         if limit:
             recipes = recipes[:int(limit)]
