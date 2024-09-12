@@ -3,7 +3,8 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import (IntegerField, SerializerMethodField)
+from rest_framework.fields import (IntegerField, ReadOnlyField,
+                                   SerializerMethodField)
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer
 
@@ -26,38 +27,26 @@ class IngredientSerializer(ModelSerializer):
 
 
 class IngredientInRecipeReadSerializer(ModelSerializer):
-    id = SerializerMethodField()
-    name = SerializerMethodField()
-    measurement_unit = SerializerMethodField()
-    amount = SerializerMethodField()
+    id = IntegerField()
+    name = ReadOnlyField()
+    measurement_unit = ReadOnlyField()
+    amount = SerializerMethodField(read_only=True)
 
     class Meta:
-        model = RecipeIngredient
+        model = Ingredient
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
-    def get_id(self, obj):
-        ingredient_recipe = RecipeIngredient.objects.filter(
-            ingredient=obj).first()
-        return f'{ingredient_recipe.ingredient.id}'
-
-    def get_name(self, obj):
-        ingredient_recipe = RecipeIngredient.objects.filter(
-            ingredient=obj).first()
-        return f'{ingredient_recipe.ingredient.name}'
-
-    def get_measurement_unit(self, obj):
-        ingredient_recipe = RecipeIngredient.objects.filter(
-            ingredient=obj).first()
-        return f'{ingredient_recipe.ingredient.measurement_unit}'
-
     def get_amount(self, obj):
-        ingredient_recipe = RecipeIngredient.objects.filter(
-            ingredient=obj).first()
-        return f'{ingredient_recipe.amount}'
+        ingredient = obj.recipes_w_ingredient.first()
+        return f'{ingredient.amount}'
 
 
 class IngredientInRecipeWriteSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
+    amount = IntegerField(
+        max_value=settings.MAX_MODEL_VALUE,
+        min_value=settings.MIN_MODEL_VALUE
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -143,21 +132,24 @@ class RecipeWriteSerializer(ModelSerializer):
         tags = value
         if not tags:
             raise ValidationError('Добавьте хотя бы один тег')
-        tags_list = [tag.id for tag in tags]
-        if len(tags_list) != len(set(tags_list)):
-            raise ValidationError('Теги не должны повторяться')
+        tags_set = {}
+        for item in tags:
+            tag = get_object_or_404(Tag, id=item['id'])
+            if tag in tags_set:
+                raise ValidationError('Теги не должны повторяться')
+            tags_set.add(tag)
         return value
 
     def validate_ingredients(self, value):
         ingredients = value
         if not ingredients:
             raise ValidationError('Добавьте хотя бы один ингредиент')
-        ingredients_list = []
+        ingredients_set = {}
         for item in ingredients:
             ingredient = get_object_or_404(Ingredient, id=item['id'])
-            if ingredient in ingredients_list:
-                raise ValidationError('Ингридиенты не могут повторяться!')
-            ingredients_list.append(ingredient)
+            if ingredient in ingredients_set:
+                raise ValidationError('Ингредиенты не должны повторяться')
+            ingredients_set.add(ingredient)
         return value
 
     def validate_cooking_time(self, value):

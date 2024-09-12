@@ -1,11 +1,11 @@
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 
-from .models import Subscribe
 
 User = get_user_model()
 
@@ -56,7 +56,7 @@ class ModifiedUserSerializer(UserSerializer):
         user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return Subscribe.objects.filter(user=user, author=obj).exists()
+        return user.subscriber.filter(author=obj).exists()
 
 
 class SubscribeSerializer(ModifiedUserSerializer):
@@ -67,6 +67,21 @@ class SubscribeSerializer(ModifiedUserSerializer):
         fields = ModifiedUserSerializer.Meta.fields + (
             'recipes', 'recipes_count'
         )
+
+    def validate(self, data):
+        author = self.instance
+        user = self.context.get('request').user
+        if user.subscriber.filter(author=author).exists():
+            raise ValidationError(
+                'Вы уже подписаны на этого автора',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if user == author:
+            raise ValidationError(
+                'Нельзя подписаться на самого себя',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return data
 
     def get_recipes(self, obj):
         from recipes.serializers import RecipeSubscribeSerializer

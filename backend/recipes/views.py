@@ -158,4 +158,4 @@ class ShortLinkViewSet(ModelViewSet):
         short_link_obj = get_object_or_404(ShortLink, recipe_id=pk)
         base_link = f'{self.request.scheme}://{self.request.get_host()}/s/'
         short_link = str(base_link + short_link_obj.short_link)
-        return Response({"short-link": short_link})
+        return Response({'short-link': short_link})

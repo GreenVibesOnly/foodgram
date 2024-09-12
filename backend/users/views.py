@@ -4,7 +4,6 @@ from djoser.serializers import SetPasswordSerializer
 from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,6 +12,7 @@ from core.permissions import IsAdminOrReadOnly, IsUserOrReadOnly
 from .models import Subscribe
 from .serializers import (AvatarSerializer, ModifiedUserCreateSerializer,
                           ModifiedUserSerializer, SubscribeSerializer)
+
 
 User = get_user_model()
 
@@ -53,19 +53,12 @@ class ModifiedUserViewSet(UserViewSet):
         author = get_object_or_404(User, id=self.kwargs.get('id'))
 
         if request.method == 'POST':
-            if user.subscriber.filter(author=author).exists():
-                raise ValidationError(
-                    'Вы уже подписаны на этого автора',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if user == author:
-                raise ValidationError(
-                    'Нельзя подписаться на самого себя',
-                    status=status.HTTP_400_BAD_REQUEST
-                )
             serializer = SubscribeSerializer(
-                author, context={'request': request}
+                author,
+                data=request.data,
+                context={'request': request}
             )
+            serializer.is_valid()
             Subscribe.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
