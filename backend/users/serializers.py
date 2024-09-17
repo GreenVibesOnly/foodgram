@@ -6,6 +6,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 
+from .models import Subscribe
+
 
 User = get_user_model()
 
@@ -16,25 +18,6 @@ class AvatarSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = ('avatar',)
-
-
-class ModifiedUserCreateSerializer(UserCreateSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'email',
-            'username',
-            'first_name',
-            'last_name',
-            'password',
-        )
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise ValidationError(
-                'Этот адрес электронной почты уже используется'
-            )
-        return value
 
 
 class ModifiedUserSerializer(UserSerializer):
@@ -59,6 +42,25 @@ class ModifiedUserSerializer(UserSerializer):
         return user.subscriber.filter(author=obj).exists()
 
 
+class ModifiedUserCreateSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'password',
+        )
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise ValidationError(
+                'Этот адрес электронной почты уже используется'
+            )
+        return value
+
+
 class SubscribeSerializer(ModifiedUserSerializer):
     recipes = SerializerMethodField()
     recipes_count = SerializerMethodField()
@@ -67,21 +69,6 @@ class SubscribeSerializer(ModifiedUserSerializer):
         fields = ModifiedUserSerializer.Meta.fields + (
             'recipes', 'recipes_count'
         )
-
-    def validate(self, data):
-        author = self.instance
-        user = self.context.get('request').user
-        if user.subscriber.filter(author=author).exists():
-            raise ValidationError(
-                'Вы уже подписаны на этого автора',
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        if user == author:
-            raise ValidationError(
-                'Нельзя подписаться на самого себя',
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return data
 
     def get_recipes(self, obj):
         from recipes.serializers import RecipeSubscribeSerializer
@@ -95,3 +82,31 @@ class SubscribeSerializer(ModifiedUserSerializer):
 
     def get_recipes_count(self, obj):
         return obj.authored_recipes.count()
+
+
+class SubscribeWriteSerializer(ModifiedUserSerializer):
+    author = ModifiedUserSerializer(read_only=True)
+    user = ModifiedUserSerializer(read_only=True)
+
+    class Meta:
+        model = Subscribe
+        fields = (
+            'id',
+            'author',
+            'user'
+        )
+
+    def validate_author(self, value):
+        author = value
+        user = self.context['user']
+        if user.subscriber.filter(author=author).exists():
+            raise ValidationError(
+                'Вы уже подписаны на этого автора',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if author == user:
+            raise ValidationError(
+                'Нельзя подписаться на самого себя',
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return value

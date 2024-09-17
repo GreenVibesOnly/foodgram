@@ -11,7 +11,8 @@ from core.pagination import ModifiedPagination
 from core.permissions import IsAdminOrReadOnly, IsUserOrReadOnly
 from .models import Subscribe
 from .serializers import (AvatarSerializer, ModifiedUserCreateSerializer,
-                          ModifiedUserSerializer, SubscribeSerializer)
+                          ModifiedUserSerializer, SubscribeSerializer,
+                          SubscribeWriteSerializer)
 
 
 User = get_user_model()
@@ -36,12 +37,11 @@ class ModifiedUserViewSet(UserViewSet):
         serializer = SetPasswordSerializer(
             data=request.data,
             context={'request': request})
-        if serializer.is_valid(raise_exception=True):
-            self.request.user.set_password(serializer.data['new_password'])
-            self.request.user.save()
-            return Response('Пароль успешно изменен',
-                            status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        self.request.user.set_password(serializer.data['new_password'])
+        self.request.user.save()
+        return Response('Пароль успешно изменен',
+                        status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -53,12 +53,13 @@ class ModifiedUserViewSet(UserViewSet):
         author = get_object_or_404(User, id=self.kwargs.get('id'))
 
         if request.method == 'POST':
-            serializer = SubscribeSerializer(
-                author,
+            serializer = SubscribeWriteSerializer(
                 data=request.data,
-                context={'request': request}
+                context={'request': request,
+                         'user': user,
+                         'author': author}
             )
-            serializer.is_valid()
+            serializer.is_valid(raise_exception=True)
             Subscribe.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
